@@ -1,0 +1,30 @@
+[Unit]
+Description=Reference FAQ Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=faqbot
+Group=faqbot
+WorkingDirectory=/opt/faq-bot
+ExecStart=/opt/faq-bot/.venv/bin/python3 /opt/faq-bot/bot.py
+
+# Перезапуск при любом падении (сетевые обрывы Telegram API, краш процесса)
+Restart=always
+RestartSec=5
+
+# Логи идут в journald, читаются через journalctl -u faq-bot
+StandardOutput=journal
+StandardError=journal
+
+# Базовая изоляция процесса
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# Каталог проекта должен оставаться доступным на запись: там лежит requests.sqlite3
+ReadWritePaths=/opt/faq-bot
+
+[Install]
+WantedBy=multi-user.target

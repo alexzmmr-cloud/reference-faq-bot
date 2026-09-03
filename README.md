@@ -74,12 +74,66 @@ python3 bot.py
 
 Если отправка уведомления не удалась (невалидный chat_id, владелец не запускал бота), это не блокирует ответ пользователю — ошибка только логируется. Бот не запустится, если ни `OWNER_CHAT_ID`, ни `ADMIN_CHAT_ID` не заданы или невалидны.
 
+## Деплой на сервер (Yandex Cloud VM)
+
+Бот работает через long polling, поэтому ему не нужен публичный IP, домен или webhook — достаточно исходящего доступа в интернет.
+
+Файл автозапуска: [`deploy/faq-bot.service`](deploy/faq-bot.service) (systemd).
+
+### Установка на сервере
+
+```bash
+# 1. Зависимости системы
+sudo apt update && sudo apt install -y python3 python3-venv git
+
+# 2. Отдельный пользователь без прав входа
+sudo useradd --system --create-home --shell /usr/sbin/nologin faqbot
+
+# 3. Код из репозитория
+sudo git clone https://git.sourcecraft.dev/organization-alkrylov/faq-bot.git /opt/faq-bot
+sudo chown -R faqbot:faqbot /opt/faq-bot
+
+# 4. Виртуальное окружение и зависимости
+sudo -u faqbot python3 -m venv /opt/faq-bot/.venv
+sudo -u faqbot /opt/faq-bot/.venv/bin/pip install -r /opt/faq-bot/requirements.txt
+
+# 5. Секреты (.env не хранится в репозитории)
+sudo -u faqbot cp /opt/faq-bot/.env.example /opt/faq-bot/.env
+sudo -u faqbot nano /opt/faq-bot/.env     # вписать BOT_TOKEN, OWNER_CHAT_ID, ADMIN_CHAT_ID
+sudo chmod 600 /opt/faq-bot/.env
+
+# 6. Автозапуск
+sudo cp /opt/faq-bot/deploy/faq-bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now faq-bot
+```
+
+### Проверка и эксплуатация
+
+```bash
+sudo systemctl status faq-bot      # состояние сервиса
+sudo journalctl -u faq-bot -f      # логи в реальном времени
+sudo systemctl restart faq-bot     # перезапуск
+```
+
+### Обновление версии
+
+```bash
+cd /opt/faq-bot
+sudo -u faqbot git pull
+sudo -u faqbot /opt/faq-bot/.venv/bin/pip install -r requirements.txt
+sudo systemctl restart faq-bot
+```
+
+Важно: локально и на сервере должен работать только один экземпляр бота. Telegram разрешает long polling лишь одному процессу на токен — второй получит ошибку `TelegramConflictError`.
+
 ## Ограничения текущей версии
 
 - Только Telegram-бот, без веб-интерфейса
 - Нет реальной пересылки обращений оператору вручную — только сохранение в SQLite и уведомление владельца/админа
 - Owner и admin не разделены — используется один и тот же chat_id для обеих переменных, без ретраев при сбое отправки
-- Нет редактирования `faq.json` через бота, многоязычности, VPS/деплоя, вебхуков, API ИИ, CRM, оплаты
+- Нет редактирования `faq.json` через бота, многоязычности, вебхуков, API ИИ, CRM, оплаты
+- Деплой — одиночная VM с systemd и long polling; нет балансировки, нескольких реплик и внешней БД (SQLite лежит на диске сервера)
 - Нет автотестов — проверка только через ручной smoke-check в Telegram
 
 Полный контракт по данным и границам — в [`spec.md`](spec.md).
