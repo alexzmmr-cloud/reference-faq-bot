@@ -108,6 +108,28 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now faq-bot
 ```
 
+### Если сервер в России: Telegram недоступен напрямую
+
+С виртуальных машин Yandex Cloud (и другой российской инфраструктуры) `api.telegram.org` заблокирован на сетевом уровне провайдера. Бот стартует, читает конфиг и базу, но падает с `TelegramNetworkError: Request timeout error`.
+
+Диагностика занимает несколько секунд:
+
+```bash
+curl -s -o /dev/null -w "google:   HTTP %{http_code}\n" --max-time 15 https://www.google.com
+curl -s -o /dev/null -w "telegram: HTTP %{http_code}\n" --max-time 15 https://api.telegram.org
+```
+
+Если Google отвечает `200`, а Telegram — `000` по таймауту, дело в блокировке, а не в коде или токене.
+
+Решения два:
+
+1. **Сервер вне РФ** — Telegram доступен напрямую, ничего настраивать не нужно.
+2. **Прокси на сервере** — переменная `BOT_PROXY` в `.env` или в systemd-юните:
+   ```
+   BOT_PROXY=http://127.0.0.1:2412
+   ```
+   Бот тогда ходит в Telegram через указанный прокси. Требуется пакет `aiohttp-socks` (есть в `requirements.txt`) и запущенный прокси-клиент. Если прокси-сервер сам недоступен с этой машины, зависимости и бинарники придётся доставлять через промежуточный хост.
+
 ### Проверка и эксплуатация
 
 ```bash

@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 
 from aiogram import Bot, Dispatcher, F
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from dotenv import load_dotenv
@@ -156,7 +157,11 @@ async def main() -> None:
     get_notification_chat_ids()
 
     init_db()
-    bot = Bot(token=token)
+    # BOT_PROXY нужен там, где api.telegram.org недоступен напрямую
+    # (например, на серверах в РФ) — задаётся в .env или в systemd-юните
+    proxy = os.getenv("BOT_PROXY")
+    session = AiohttpSession(proxy=proxy) if proxy else None
+    bot = Bot(token=token, session=session) if session else Bot(token=token)
     logger.info("Starting bot with long polling")
     await dp.start_polling(bot)
 

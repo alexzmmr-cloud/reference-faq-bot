@@ -2,29 +2,29 @@
 Description=Reference FAQ Telegram Bot
 After=network-online.target
 Wants=network-online.target
+# Если Telegram доступен только через прокси — раскомментируйте обе строки,
+# чтобы бот стартовал после прокси-клиента:
+# After=network-online.target sing-box.service
+# Requires=sing-box.service
 
 [Service]
 Type=simple
+# Подставьте своего пользователя и путь к проекту
 User=faqbot
-Group=faqbot
 WorkingDirectory=/opt/faq-bot
-ExecStart=/opt/faq-bot/.venv/bin/python3 /opt/faq-bot/bot.py
+ExecStart=/opt/faq-bot/.venv/bin/python /opt/faq-bot/bot.py
 
-# Перезапуск при любом падении (сетевые обрывы Telegram API, краш процесса)
+# Прокси для доступа к api.telegram.org там, где он заблокирован.
+# Оставьте закомментированным, если Telegram доступен напрямую.
+# Environment="BOT_PROXY=http://127.0.0.1:2412"
+
+# Перезапуск при любом падении (сетевые обрывы, краш процесса)
 Restart=always
-RestartSec=5
+RestartSec=10
 
 # Логи идут в journald, читаются через journalctl -u faq-bot
 StandardOutput=journal
 StandardError=journal
-
-# Базовая изоляция процесса
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=full
-ProtectHome=true
-# Каталог проекта должен оставаться доступным на запись: там лежит requests.sqlite3
-ReadWritePaths=/opt/faq-bot
 
 [Install]
 WantedBy=multi-user.target

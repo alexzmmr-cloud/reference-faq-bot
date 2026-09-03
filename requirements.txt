@@ -1,2 +1,4 @@
 aiogram==3.28.2
 python-dotenv==1.2.2
+# нужен только при работе через прокси (BOT_PROXY)
+aiohttp-socks==0.12.0
